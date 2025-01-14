@@ -1,7 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const Location = require('../models/Location'); // Modelo de Localização
 const nodemailer = require('nodemailer');
+
+// Função para configurar o transporte de e-mail
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+};
 
 // Função para envio manual de e-mail
 const sendManualEmail = async (to, { name, latitude, longitude }) => {
@@ -10,13 +20,11 @@ const sendManualEmail = async (to, { name, latitude, longitude }) => {
       throw new Error('Parâmetros insuficientes para enviar o e-mail.');
     }
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    if (isNaN(latitude) || isNaN(longitude)) {
+      throw new Error('Latitude e longitude devem ser números válidos.');
+    }
+
+    const transporter = createTransporter();
 
     const mailOptions = {
       from: `"Mind Harmony" <${process.env.EMAIL_USER}>`,

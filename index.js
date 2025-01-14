@@ -35,7 +35,7 @@ app.use('/api/email', emailRoutes); // Configura a rota para envio de email
 
 // Rotas de simulação de frequência cardíaca
 const simulateHeartRateRoutes = require('./routes/simulateHeartRateRoutes');
-app.use('/api', simulateHeartRateRoutes);
+app.use('/api/simulate-heart-rate', simulateHeartRateRoutes);
 
 // Rotas de autenticação para o site
 const siteAuthRoutes = require('./routes/websiteRoutes/siteAuthRoutes'); // Importa as rotas específicas do site
@@ -45,13 +45,15 @@ app.use('/api/website/auth', siteAuthRoutes); // Configura as rotas para o site
 const emergencyContactRoutes = require('./routes/emergencyContactRoutes'); // Importa as rotas de contato de emergência
 app.use('/api/emergency-contact', emergencyContactRoutes); // Configura as rotas para contato de emergência
 
+// Rotas de sono
 const sleepRoutes = require('./routes/sleepRoutes');
 app.use('/api/sleep', sleepRoutes);
 
+// Rotas de dados térmicos
 const thermalRoutes = require('./routes/thermalRoutes');
 app.use('/api/thermal', thermalRoutes);
 
-
+// Rotas de estado emocional
 const emotionalStateRoutes = require('./routes/emotionalStateRoutes');
 app.use('/api/emotional-state', emotionalStateRoutes);
 
@@ -63,6 +65,13 @@ app.use('/api', friendsRoutes);
 
 const manualEmailRoutes = require('./routes/sendManualEmail'); // Certifique-se do caminho correto
 app.use('/api', manualEmailRoutes); // Registra as rotas com o prefixo /api
+
+// Rotas de músicas e playlists
+const playlistRoutes = require('./routes/playListRoutes');
+app.use('/api/playlists', playlistRoutes);
+
+const vibrationRoutes = require('./routes/vibrationRoutes');
+app.use('/api/vibration-settings', vibrationRoutes);
 
 
 
