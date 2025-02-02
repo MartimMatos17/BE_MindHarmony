@@ -6,4 +6,4 @@ const oxygenLevelSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model('OxygenLevel', oxygenLevelSchema);  
+module.exports = mongoose.model('OxygenLevel', oxygenLevelSchema);

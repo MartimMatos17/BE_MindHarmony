@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
-const EmergencyContact = require('../models/EmergencyContact'); // Importar o modelo de contato de emergência
+const EmergencyContact = require('../models/EmergencyContact');
 
 // Função de registro (Sign Up)
 exports.register = async (req, res) => {
@@ -79,6 +79,7 @@ exports.register = async (req, res) => {
     res.status(400).send({ error: 'Erro ao registar o utilizador', details: err.message });
   }
 };
+
 // Função de login
 exports.login = async (req, res) => {
   const { email, password } = req.body;
@@ -120,5 +121,49 @@ exports.login = async (req, res) => {
   } catch (err) {
     console.error('Erro ao fazer login:', err);
     res.status(500).send({ error: 'Erro ao fazer login', details: err.message });
+  }
+};
+
+// Função para mudar a password
+exports.changePassword = async (req, res) => {
+  const { currentPassword, newPassword, confirmNewPassword } = req.body;
+  const userId = req.user.id; // ID do usuário autenticado
+
+  try {
+    // Verificar se as novas senhas coincidem
+    if (newPassword !== confirmNewPassword) {
+      return res.status(400).send({ error: 'As novas senhas não coincidem.' });
+    }
+
+    // Validação da nova senha
+    if (newPassword.length < 8 || newPassword.length > 30) {
+      return res.status(400).send({ error: 'A nova senha deve ter entre 8 e 30 caracteres.' });
+    }
+
+    // Encontrar o usuário
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).send({ error: 'Utilizador não encontrado.' });
+    }
+
+    // Verificar a senha atual
+    const validPass = await bcrypt.compare(currentPassword, user.password);
+    if (!validPass) {
+      return res.status(400).send({ error: 'Senha atual incorreta.' });
+    }
+
+    // Encriptar a nova senha
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Atualizar a password do usuário
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).send({ message: 'Password alterada com sucesso!' });
+
+  } catch (err) {
+    console.error('Erro ao alterar a password:', err);
+    res.status(500).send({ error: 'Erro ao alterar a password', details: err.message });
   }
 };
