@@ -67,7 +67,7 @@ const manualEmailRoutes = require('./routes/sendManualEmail'); // Certifique-se 
 app.use('/api', manualEmailRoutes); // Registra as rotas com o prefixo /api
 
 // Rotas de músicas e playlists
-const playlistRoutes = require('./routes/playListRoutes');
+const playlistRoutes = require('./routes/playlistRoutes');
 app.use('/api/playlists', playlistRoutes);
 
 const vibrationRoutes = require('./routes/vibrationRoutes');

@@ -25,66 +25,113 @@ exports.uploadEmotionalData = async (req, res) => {
 exports.getEmotionData = async (req, res) => {
     const userId = req.user.id;
     try {
-        // Buscar os últimos dados de estado emocional do usuário
-        const emotionalData = await EmotionalState.find({ userId }).sort({ date: -1 }).limit(7);
+        // Definir limites para cada período
+        const limitMinuto = 7;
+        const limitDezMinutos = 10;
+        const limitHora = 60;
 
-        if (emotionalData.length === 0) {
-            return res.status(200).json({ message: 'Nenhum dado encontrado para este usuário.' });
-        }
+        // Função para buscar os dados de estado emocional e calcular estatísticas
+        const buscarDadosEcalcular = async (limite) => {
+            const emotionalData = await EmotionalState.find({ userId }).sort({ date: -1 }).limit(limite);
 
-        const totalLeituras = emotionalData.length;
-        const totais = emotionalData.reduce(
-            (acc, data) => ({
-                tristeza: acc.tristeza + data.tristeza,
-                stressAnsiedade: acc.stressAnsiedade + data.stressAnsiedade,
-                excitação: acc.excitação + data.excitação,
-                calma: acc.calma + data.calma,
-                felicidade: acc.felicidade + data.felicidade,
-            }),
-            { tristeza: 0, stressAnsiedade: 0, excitação: 0, calma: 0, felicidade: 0 }
-        );
-        const medias = {
-            tristeza: (totais.tristeza / totalLeituras),
-            stressAnsiedade: (totais.stressAnsiedade / totalLeituras),
-            excitação: (totais.excitação / totalLeituras),
-            calma: (totais.calma / totalLeituras),
-            felicidade: (totais.felicidade / totalLeituras),
+            if (emotionalData.length === 0) {
+                return { dados: [], medias: null, dominancia: null };
+            }
+
+            // Calcular médias
+            const totalLeituras = emotionalData.length;
+            const totais = emotionalData.reduce(
+                (acc, data) => ({
+                    tristeza: acc.tristeza + data.tristeza,
+                    stressAnsiedade: acc.stressAnsiedade + data.stressAnsiedade,
+                    excitação: acc.excitação + data.excitação,
+                    calma: acc.calma + data.calma,
+                    felicidade: acc.felicidade + data.felicidade,
+                }),
+                { tristeza: 0, stressAnsiedade: 0, excitação: 0, calma: 0, felicidade: 0 }
+            );
+
+            const medias = {
+                tristeza: (totais.tristeza / totalLeituras).toFixed(2),
+                stressAnsiedade: (totais.stressAnsiedade / totalLeituras).toFixed(2),
+                excitação: (totais.excitação / totalLeituras).toFixed(2),
+                calma: (totais.calma / totalLeituras).toFixed(2),
+                felicidade: (totais.felicidade / totalLeituras).toFixed(2),
+            };
+
+            const ultimo = emotionalData[0];
+            const dominancia = ultimo ? {
+                tristeza: ultimo.tristeza,
+                stressAnsiedade: ultimo.stressAnsiedade,
+                excitação: ultimo.excitação,
+                calma: ultimo.calma,
+                felicidade: ultimo.felicidade,
+            } : null;
+
+            const barChartData = { // Example Bar Chart Data
+                labels: ['Tristeza', 'Stress', 'Excitação', 'Calma'],
+                datasets: [
+                    {
+                        data: [
+                            emotionalData[0]?.tristeza || 0,
+                            emotionalData[0]?.stressAnsiedade || 0,
+                            emotionalData[0]?.excitação || 0,
+                            emotionalData[0]?.calma || 0
+                        ],
+                        colors: [
+                            `rgba(255, 99, 132, 0.8)`,   // Tristeza
+                            `rgba(54, 162, 235, 0.8)`,    // Stress/Ansiedade
+                            `rgba(255, 206, 86, 0.8)`,    // Excitação
+                            `rgba(75, 192, 192, 0.8)`,     // Calma
+                        ],
+                    },
+                ],
+            };
+
+
+            // Preparar dados
+            const dados = emotionalData.map(data => ({
+                tristeza: data.tristeza,
+                stressAnsiedade: data.stressAnsiedade,
+                excitação: data.excitação,
+                calma: data.calma,
+                felicidade: data.felicidade
+            })).reverse();
+
+            return { dados, medias, dominancia, barChartData };
         };
 
-        const emotionData = {
-            tristeza: medias.tristeza.toFixed(2),
-            stressAnsiedade: medias.stressAnsiedade.toFixed(2),
-            excitação: medias.excitação.toFixed(2),
-            calma: medias.calma.toFixed(2),
-            felicidade: medias.felicidade.toFixed(2),
+        // Buscar e calcular para cada período
+        const minuto = await buscarDadosEcalcular(limitMinuto);
+        const dezMinutos = await buscarDadosEcalcular(limitDezMinutos);
+        const hora = await buscarDadosEcalcular(limitHora);
+
+        const historico = {
+            minuto: minuto.dados,
+            dezMinutos: dezMinutos.dados,
+            hora: hora.dados,
         };
-
-        const lastSeven = emotionalData.slice(0, 7);
-        const lastTen = emotionalData.slice(0, 10);
-        const lastHour = emotionalData.slice(0, 60);
-
-        const minuto = lastSeven.map((data) => ({tristeza: data.tristeza, stressAnsiedade: data.stressAnsiedade, excitação: data.excitação, calma: data.calma, felicidade: data.felicidade})).reverse();
-        const dezMinutos = lastTen.map((data) => ({tristeza: data.tristeza, stressAnsiedade: data.stressAnsiedade, excitação: data.excitação, calma: data.calma, felicidade: data.felicidade})).reverse();
-        const hora = lastHour.map((data) => ({tristeza: data.tristeza, stressAnsiedade: data.stressAnsiedade, excitação: data.excitação, calma: data.calma, felicidade: data.felicidade})).reverse();
-        const lastReading = emotionalData[0];
         const dominantEmotion = {
-            tristeza: lastReading.tristeza,
-            stressAnsiedade: lastReading.stressAnsiedade,
-            excitação: lastReading.excitação,
-            calma: lastReading.calma,
-            felicidade: lastReading.felicidade,
+            minuto: minuto.dominancia,
+            dezMinutos: dezMinutos.dominancia,
+            hora: hora.dominancia,
         }
-          const historico = {
-            minuto: minuto,
-            dezMinutos: dezMinutos,
-            hora: hora,
+        const emotionData = {
+            minuto: minuto.medias,
+            dezMinutos: dezMinutos.medias,
+            hora: hora.medias,
+        };
+        const barData = {
+            minuto: minuto.barChartData,
+            dezMinutos: dezMinutos.barChartData,
+            hora: hora.barChartData,
         }
-        res.status(200).json({ emotionData, historico, dominantEmotion });
 
+        res.status(200).json({ emotionData, historico, dominantEmotion, barData });
     } catch (err) {
         res.status(400).json({ error: 'Erro ao obter dados.', detalhes: err.message });
     }
-}
+};
 
 
 // Função para gerar relatório inteligente e detalhado de estado emocional
@@ -131,41 +178,41 @@ exports.getEmotionalReport = async (req, res) => {
 
         const detailedAnalysis = Object.entries(analiseDiaria).map(([data, leituras]) => {
             const sumTristeza = leituras.reduce((sum, data) => sum + data.tristeza, 0);
-            const mediaTristeza = (sumTristeza/ leituras.length).toFixed(2);
+            const mediaTristeza = (sumTristeza / leituras.length).toFixed(2);
             const sumStressAnsiedade = leituras.reduce((sum, data) => sum + data.stressAnsiedade, 0);
-            const mediaStressAnsiedade = (sumStressAnsiedade/ leituras.length).toFixed(2);
+            const mediaStressAnsiedade = (sumStressAnsiedade / leituras.length).toFixed(2);
             const sumExcitacao = leituras.reduce((sum, data) => sum + data.excitação, 0);
-            const mediaExcitacao = (sumExcitacao/ leituras.length).toFixed(2);
+            const mediaExcitacao = (sumExcitacao / leituras.length).toFixed(2);
             const sumCalma = leituras.reduce((sum, data) => sum + data.calma, 0);
-            const mediaCalma = (sumCalma/ leituras.length).toFixed(2);
+            const mediaCalma = (sumCalma / leituras.length).toFixed(2);
             const sumFelicidade = leituras.reduce((sum, data) => sum + data.felicidade, 0);
-            const mediaFelicidade = (sumFelicidade/ leituras.length).toFixed(2);
-            
+            const mediaFelicidade = (sumFelicidade / leituras.length).toFixed(2);
+
             const elevados = leituras.filter(data => data.tristeza > 60 || data.stressAnsiedade > 60 || data.excitação > 80).length;
             const baixos = leituras.filter(data => data.felicidade < 40 || data.calma < 40).length;
-            const normais = leituras.filter(data => data.tristeza <=60 && data.stressAnsiedade <= 60 && data.excitação <= 80 && data.felicidade >= 40 && data.calma >= 40).length;
+            const normais = leituras.filter(data => data.tristeza <= 60 && data.stressAnsiedade <= 60 && data.excitação <= 80 && data.felicidade >= 40 && data.calma >= 40).length;
 
             return {
-              data,
-              mediaTristeza: mediaTristeza,
+                data,
+                mediaTristeza: mediaTristeza,
                 mediaStressAnsiedade: mediaStressAnsiedade,
-                 mediaExcitacao: mediaExcitacao,
-                  mediaCalma: mediaCalma,
+                mediaExcitacao: mediaExcitacao,
+                mediaCalma: mediaCalma,
                 mediaFelicidade: mediaFelicidade,
-              elevados,
-              baixos,
-              normais,
+                elevados,
+                baixos,
+                normais,
             }
         });
 
         // Função para análise personalizada
         const gerarFeedback = (categoria, valor, limites, mensagens) => {
             if (valor > limites.alto) {
-                return { mensagem: mensagens.alto, recomendacao: mensagens.recomendacaoAlta };
+                return { mensagem: mensagens.alto, recomendacao: recomendacaoAlta };
             } else if (valor < limites.baixo) {
-                return { mensagem: mensagens.baixo, recomendacao: mensagens.recomendacaoBaixa };
+                return { mensagem: mensagens.baixo, recomendacao: recomendacaoBaixa };
             } else {
-                return { mensagem: mensagens.normal, recomendacao: mensagens.recomendacaoNormal };
+                return { mensagem: mensagens.normal, recomendacao: recomendacaoNormal };
             }
         };
         const feedback = [];
@@ -261,9 +308,7 @@ exports.getEmotionalReport = async (req, res) => {
                 calma: `${medias.calma}%`,
                 felicidade: `${medias.felicidade}%`,
             },
-            analiseDiaria: detailedAnalysis,
             analiseSemanal: feedback,
-            recomendacoes: recomendacoes,
         };
 
         res.status(200).json({ relatorio });

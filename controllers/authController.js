@@ -124,12 +124,20 @@ exports.login = async (req, res) => {
   }
 };
 
-// Função para mudar a password
+// Função para mudar a password COM VERIFICAÇÃO DE EMAIL
 exports.changePassword = async (req, res) => {
-  const { currentPassword, newPassword, confirmNewPassword } = req.body;
-  const userId = req.user.id; // ID do usuário autenticado
+  const { email, currentPassword, newPassword, confirmNewPassword } = req.body;
 
   try {
+    // Converter o email para minúsculas
+    const lowerCaseEmail = email.toLowerCase();
+
+    // Validação do formato do email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(lowerCaseEmail)) {
+      return res.status(400).send({ error: 'Por favor insira um email válido.' });
+    }
+
     // Verificar se as novas senhas coincidem
     if (newPassword !== confirmNewPassword) {
       return res.status(400).send({ error: 'As novas senhas não coincidem.' });
@@ -140,8 +148,8 @@ exports.changePassword = async (req, res) => {
       return res.status(400).send({ error: 'A nova senha deve ter entre 8 e 30 caracteres.' });
     }
 
-    // Encontrar o usuário
-    const user = await User.findById(userId);
+    // Encontrar o usuário pelo email
+    const user = await User.findOne({ email: lowerCaseEmail });
     if (!user) {
       return res.status(404).send({ error: 'Utilizador não encontrado.' });
     }

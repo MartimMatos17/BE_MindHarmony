@@ -1,8 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
-const Location = require('../models/Location'); // Modelo de Localização
-const User = require('../models/User'); // Modelo de Usuário
+const Location = require('../models/Location'); 
+const User = require('../models/User'); 
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Rota para salvar uma localização
@@ -14,11 +14,10 @@ router.post('/location', async (req, res) => {
   }
 
   try {
-    // Atualizar ou criar a localização
     const updatedLocation = await Location.findOneAndUpdate(
-      { email: email.toLowerCase() }, // Busca pelo e-mail no banco de dados
-      { name, latitude, longitude }, // Atualiza esses campos
-      { upsert: true, new: true } // Cria o registro se não existir (upsert)
+      { email: email.toLowerCase() }, 
+      { name, latitude, longitude }, 
+      { upsert: true, new: true } 
     );
 
     return res.status(200).json({ message: 'Localização salva ou atualizada com sucesso!', data: updatedLocation });
